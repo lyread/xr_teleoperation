@@ -357,9 +357,14 @@ if __name__ == '__main__':
             tele_data = tv_wrapper.get_motion_state_data()
             if (args.ee == "dex3" or args.ee == "inspire1" or args.ee == "brainco") and args.xr_mode == "hand":
                 with left_hand_pos_array.get_lock():
-                    left_hand_pos_array[:] = tele_data.left_hand_pos.flatten()
+                    left_hand_pos_array[:] = tele_data.left_hand_pos.flatten() #(25,3) 3D positions of left hand joints. got（75,）
                 with right_hand_pos_array.get_lock():
                     right_hand_pos_array[:] = tele_data.right_hand_pos.flatten()
+            elif args.ee == "dex3" and args.xr_mode == "controller":
+                with left_hand_pos_array.get_lock():
+                    left_gripper_value.value = tele_data.left_trigger_value
+                with right_hand_pos_array.get_lock():
+                    right_gripper_value.value = tele_data.right_trigger_value
             elif args.ee == "dex1" and args.xr_mode == "controller":
                 with left_gripper_value.get_lock():
                     left_gripper_value.value = tele_data.left_trigger_value
