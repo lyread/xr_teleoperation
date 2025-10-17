@@ -246,6 +246,13 @@ if __name__ == '__main__':
             dual_hand_state_array = Array('d', 14, lock = False)   # [output] current left, right hand state(14) data.
             dual_hand_action_array = Array('d', 14, lock = False)  # [output] current left, right hand action(14) data.
             hand_ctrl = Dex3_1_Controller(left_hand_pos_array, right_hand_pos_array, dual_hand_data_lock, dual_hand_state_array, dual_hand_action_array, simulation_mode=args.sim)
+        elif args.ee == "dex3_controller":
+            left_hand_value = Value('d', 0.0, lock=True)        # [input]
+            right_hand_value = Value('d', 0.0, lock=True)       # [input]
+            dual_hand_data_lock = Lock()
+            dual_hand_state_array = Array('d', 2, lock=False)   # current left, right gripper state(2) data.
+            dual_hand_action_array = Array('d', 2, lock=False)  # current left, right gripper action(2) data.
+            gripper_ctrl = Dex1_1_Gripper_Controller(left_hand_value, right_hand_value, dual_gripper_data_lock, dual_gripper_state_array, dual_gripper_action_array, simulation_mode=args.sim)    
         elif args.ee == "dex1":
             left_gripper_value = Value('d', 0.0, lock=True)        # [input]
             right_gripper_value = Value('d', 0.0, lock=True)       # [input]
@@ -362,7 +369,7 @@ if __name__ == '__main__':
                     right_hand_pos_array[:] = tele_data.right_hand_pos.flatten()
             elif args.ee == "dex3" and args.xr_mode == "controller":
                 with left_hand_pos_array.get_lock():
-                    left_gripper_value.value = tele_data.left_trigger_value
+                    left_hand_value.value = tele_data.left_trigger_value
                 with right_hand_pos_array.get_lock():
                     right_gripper_value.value = tele_data.right_trigger_value
             elif args.ee == "dex1" and args.xr_mode == "controller":
