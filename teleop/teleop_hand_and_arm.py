@@ -145,6 +145,8 @@ if __name__ == '__main__':
 
         tv_img_shm = shared_memory.SharedMemory(create = True, size = np.prod(tv_img_shape) * np.uint8().itemsize)
         tv_img_array = np.ndarray(tv_img_shape, dtype = np.uint8, buffer = tv_img_shm.buf)
+        # get data from camera , vr controll the image range
+        # to do: change the image range
 
         if WRIST and args.sim:
             wrist_img_shape = (img_config['wrist_camera_image_shape'][0], img_config['wrist_camera_image_shape'][1] * 2, 3)
