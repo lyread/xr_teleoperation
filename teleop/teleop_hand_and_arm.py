@@ -17,7 +17,7 @@ sys.path.append(parent_dir)
 from televuer import TeleVuerWrapper
 from teleop.robot_control.robot_arm import G1_29_ArmController, G1_23_ArmController, H1_2_ArmController, H1_ArmController
 from teleop.robot_control.robot_arm_ik import G1_29_ArmIK, G1_23_ArmIK, H1_2_ArmIK, H1_ArmIK
-from teleop.robot_control.robot_hand_unitree import Dex3_1_Controller, Dex1_1_Gripper_Controller
+from teleop.robot_control.robot_hand_unitree import Dex3_1_Controller, Dex1_1_Gripper_Controller, Dex3_1_Controller_console
 from teleop.robot_control.robot_hand_inspire import Inspire_Controller
 from teleop.robot_control.robot_hand_brainco import Brainco_Controller
 from teleop.image_server.image_client import ImageClient
@@ -186,13 +186,28 @@ if __name__ == '__main__':
             arm_ctrl = H1_ArmController(simulation_mode=args.sim)
 
         # end-effector
-        if args.ee == "dex3":
+        if args.ee == "dex3" and args.xr_mode == "hand":
             left_hand_pos_array = Array('d', 75, lock = True)      # [input]
             right_hand_pos_array = Array('d', 75, lock = True)     # [input]
             dual_hand_data_lock = Lock()
             dual_hand_state_array = Array('d', 14, lock = False)   # [output] current left, right hand state(14) data.
             dual_hand_action_array = Array('d', 14, lock = False)  # [output] current left, right hand action(14) data.
-            hand_ctrl = Dex3_1_Controller(left_hand_pos_array, right_hand_pos_array, dual_hand_data_lock, dual_hand_state_array, dual_hand_action_array, simulation_mode=args.sim)
+            hand_ctrl = Dex3_1_Controller(left_hand_pos_array, right_hand_pos_array, dual_hand_data_lock, dual_hand_state_array, 
+                                          dual_hand_action_array, simulation_mode=args.sim)
+        
+        elif args.ee == "dex3" and args.xr_mode == "controller":
+            left_hand_value_in = Value('d', 0.0, lock=True)      # [input]
+            right_hand_value_in = Value('d', 0.0, lock=True)     # [input]
+            left_aButton_in  = Value('b', False, lock=True)         
+            left_bButton_in = Value('b', False, lock=True)
+            right_aButton_in = Value('b', False, lock=True)
+            right_bButton_in = Value('b', False, lock=True)
+            dual_hand_data_lock = Lock()
+            dual_hand_state_array = Array('d', 14, lock = False)   # [output] current left, right hand state(14) data.
+            dual_hand_action_array = Array('d', 14, lock = False)  # [output] current left, right hand action(14) data.
+            hand_ctrl = Dex3_1_Controller_console(left_hand_value_in, right_hand_value_in, left_aButton_in,left_bButton_in,right_aButton_in,right_bButton_in,
+                                                  dual_hand_data_lock, dual_hand_state_array, dual_hand_action_array, simulation_mode=args.sim)
+        
         elif args.ee == "dex1":
             left_gripper_value = Value('d', 0.0, lock=True)        # [input]
             right_gripper_value = Value('d', 0.0, lock=True)       # [input]
@@ -300,6 +315,21 @@ if __name__ == '__main__':
                     left_hand_pos_array[:] = tele_data.left_hand_pos.flatten()
                 with right_hand_pos_array.get_lock():
                     right_hand_pos_array[:] = tele_data.right_hand_pos.flatten()
+
+            elif args.ee == "dex3" and args.xr_mode == "controller":
+                with left_hand_value_in.get_lock():
+                    left_hand_value_in.value = tele_data.left_trigger_value
+                with right_hand_value_in.get_lock():
+                    right_hand_value_in.value = tele_data.right_trigger_value
+                with left_aButton_in.get_lock():
+                    left_aButton_in.value = tele_data.tele_state.left_aButton  # True / False
+                with left_bButton_in.get_lock():
+                    left_bButton_in.value = tele_data.tele_state.left_bButton
+                with right_aButton_in.get_lock():
+                    right_aButton_in.value = tele_data.tele_state.right_aButton
+                with right_bButton_in.get_lock():
+                    right_bButton_in.value = tele_data.tele_state.right_bButton
+                    
             elif args.ee == "dex1" and args.xr_mode == "controller":
                 with left_gripper_value.get_lock():
                     left_gripper_value.value = tele_data.left_trigger_value
@@ -350,6 +380,16 @@ if __name__ == '__main__':
                         right_hand_action = dual_hand_action_array[-7:]
                         current_body_state = []
                         current_body_action = []
+
+                elif args.ee == "dex3" and args.xr_mode == "controller":
+                    with dual_hand_data_lock:
+                        left_ee_state = dual_hand_state_array[:7]
+                        right_ee_state = dual_hand_state_array[-7:]
+                        left_hand_action = dual_hand_action_array[:7]
+                        right_hand_action = dual_hand_action_array[-7:]
+                        current_body_state = []
+                        current_body_action = []
+                        
                 elif args.ee == "dex1" and args.xr_mode == "hand":
                     with dual_gripper_data_lock:
                         left_ee_state = [dual_gripper_state_array[0]]
