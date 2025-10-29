@@ -9,7 +9,7 @@ import logging_mp
 logger_mp = logging_mp.get_logger(__name__)
 
 class ImageClient:
-    def __init__(self, tv_img_shape = None, tv_img_shm_name = None, wrist_img_shape = None, wrist_img_shm_name = None, 
+    def __init__(self, tv_img_shape = None, tv_img_shm_name = None, active_tv_img_shape = None, active_tv_img_shm_name = None,  wrist_img_shape = None, wrist_img_shm_name = None, 
                        image_show = False, server_address = "192.168.123.164", port = 5555, Unit_Test = False):
         """
         tv_img_shape: User's expected head camera resolution shape (H, W, C). It should match the output of the image service terminal.
@@ -36,6 +36,14 @@ class ImageClient:
 
         self.tv_img_shape = tv_img_shape
         self.wrist_img_shape = wrist_img_shape
+
+        self.active_tv_img_shape = active_tv_img_shape
+        
+        self.active_tv_enable_shm = False
+        if self.active_tv_img_shape is not None and active_tv_img_shm_name is not None:
+            self.active_tv_img_shm = shared_memory.SharedMemory(name=active_tv_img_shm_name)
+            self.active_tv_img_array = np.ndarray(active_tv_img_shape, dtype = np.uint8, buffer = self.active_tv_enable_shm.buf)
+            self.active_tv_enable_shm = True
 
         self.tv_enable_shm = False
         if self.tv_img_shape is not None and tv_img_shm_name is not None:

@@ -137,17 +137,25 @@ if __name__ == '__main__':
             WRIST = True
         else:
             WRIST = False
+
         
         if BINOCULAR and not (img_config['head_camera_image_shape'][1] / img_config['head_camera_image_shape'][0] > ASPECT_RATIO_THRESHOLD):
             tv_img_shape = (img_config['head_camera_image_shape'][0], img_config['head_camera_image_shape'][1] * 2, 3)
+            active_tv_img_shape = (img_config['head_camera_image_shape'][0]/2, img_config['head_camera_image_shape'][1], 3)
         else:
             tv_img_shape = (img_config['head_camera_image_shape'][0], img_config['head_camera_image_shape'][1], 3)
+            active_tv_img_shape = (img_config['head_camera_image_shape'][0]/2, img_config['head_camera_image_shape'][1]/2, 3)
+        
+        
+
 
         tv_img_shm = shared_memory.SharedMemory(create = True, size = np.prod(tv_img_shape) * np.uint8().itemsize)
         tv_img_array = np.ndarray(tv_img_shape, dtype = np.uint8, buffer = tv_img_shm.buf)
+        active_tv_img_shm = shared_memory.SharedMemory(create = True, size = np.prod(active_tv_img_shape) * np.uint8().itemsize)
+        active_tv_img_array = np.ndarray(active_tv_img_shape, dtype = np.uint8, buffer = active_tv_img_shm.buf)
         # get data from camera , vr controll the image range
         # to do: change the image range
-
+        # right = right_thumbstick_value_in
         if WRIST and args.sim:
             wrist_img_shape = (img_config['wrist_camera_image_shape'][0], img_config['wrist_camera_image_shape'][1] * 2, 3)
             wrist_img_shm = shared_memory.SharedMemory(create = True, size = np.prod(wrist_img_shape) * np.uint8().itemsize)
@@ -159,6 +167,7 @@ if __name__ == '__main__':
             wrist_img_shm = shared_memory.SharedMemory(create = True, size = np.prod(wrist_img_shape) * np.uint8().itemsize)
             wrist_img_array = np.ndarray(wrist_img_shape, dtype = np.uint8, buffer = wrist_img_shm.buf)
             img_client = ImageClient(tv_img_shape = tv_img_shape, tv_img_shm_name = tv_img_shm.name, 
+                                     active_tv_img_shape = active_tv_img_shape, active_tv_img_shm = active_tv_img_shm.name, 
                                     wrist_img_shape = wrist_img_shape, wrist_img_shm_name = wrist_img_shm.name)
         else:
             img_client = ImageClient(tv_img_shape = tv_img_shape, tv_img_shm_name = tv_img_shm.name)
@@ -170,6 +179,9 @@ if __name__ == '__main__':
         # television: obtain hand pose data from the XR device and transmit the robot's head camera image to the XR device.
         tv_wrapper = TeleVuerWrapper(binocular=BINOCULAR, use_hand_tracking=args.xr_mode == "hand", img_shape=tv_img_shape, img_shm_name=tv_img_shm.name, 
                                     return_state_data=True, return_hand_rot_data = False)
+
+
+        right_thumbstick_value_in = Array('f', [0.0, 0.0], lock=True)
 
         # arm
         if args.arm == "G1_29":
@@ -310,6 +322,8 @@ if __name__ == '__main__':
                         publish_reset_category(1, reset_pose_publisher)
             # get input data
             tele_data = tv_wrapper.get_motion_state_data()
+            with right_thumbstick_value_in.get_lock():
+                    right_thumbstick_value_in[:] = tele_data.tele_state.right_thumbstick_value.flatten()
             if (args.ee == "dex3" or args.ee == "inspire1" or args.ee == "brainco") and args.xr_mode == "hand":
                 with left_hand_pos_array.get_lock():
                     left_hand_pos_array[:] = tele_data.left_hand_pos.flatten()
@@ -329,6 +343,8 @@ if __name__ == '__main__':
                     right_aButton_in.value = tele_data.tele_state.right_aButton
                 with right_bButton_in.get_lock():
                     right_bButton_in.value = tele_data.tele_state.right_bButton
+                with right_thumbstick_value_in.get_lock():
+                    right_thumbstick_value_in[:] = tele_data.tele_state.right_thumbstick_value.flatten()
                     
             elif args.ee == "dex1" and args.xr_mode == "controller":
                 with left_gripper_value.get_lock():

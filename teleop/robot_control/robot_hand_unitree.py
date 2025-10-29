@@ -762,6 +762,7 @@ if __name__ == "__main__":
         left_bButton_in = Value('b', False, lock=True)
         right_aButton_in = Value('b', False, lock=True)
         right_bButton_in = Value('b', False, lock=True)
+        # right_thumbstick_value_in = Array('f', [0.0, 0.0], lock=True)
         dual_hand_data_lock = Lock()
         dual_hand_state_array = Array('d', 14, lock = False)   # [output] current left, right hand state(14) data.
         dual_hand_action_array = Array('d', 14, lock = False)  # [output] current left, right hand action(14) data.
